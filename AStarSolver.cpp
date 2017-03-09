@@ -48,6 +48,13 @@ void AStarSolver::solve ()
         std::sort( paths.begin(), paths.end(), [this]( AStarNode t1, AStarNode t2 ) {
             return calc_cost( t1 ) > calc_cost( t2 );
         } );
+
+        if ( paths.size() == 0 )
+        {
+            std::cout << "Cannot solve maze!" << std::endl;
+            return;
+        }
+
         current_node = paths.back();
         paths.pop_back();
         _steps++;

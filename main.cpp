@@ -23,7 +23,7 @@ int main ()
     a.solve();
 
 	char c;
-	//std::cin >> c;
+	std::cin >> c;
 
     return 0;
 }

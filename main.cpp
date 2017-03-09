@@ -5,7 +5,12 @@
 
 int main ()
 {
+#ifdef linux
     std::string maze_file = "/home/lars/Documents/programming/maze_solver/maze.dat";
+#endif
+#ifdef _WIN32
+	std::string maze_file = "C:/Users/lars/Source/Repos/maze_solver/maze.dat";
+#endif
 
     Maze m;
     m.load_textFile( maze_file );
@@ -16,6 +21,9 @@ int main ()
 
     AStarSolver a ( &m );
     a.solve();
+
+	char c;
+	std::cin >> c;
 
     return 0;
 }

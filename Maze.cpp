@@ -20,7 +20,7 @@ void Maze::load_textFile ( std::string& file )
     if ( fileS.fail() )
     {
         std::cerr << "Could not open " << file << std::endl;
-        return;
+        exit( EXIT_FAILURE );
     }
 
     std::string s;

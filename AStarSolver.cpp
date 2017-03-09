@@ -1,7 +1,8 @@
-#include <set>
 #include <iostream>
 #include <cassert>
-#include <ostream>
+#include <unordered_set>
+#include <unordered_map>
+#include <cmath>
 #include "AStarSolver.h"
 
 AStarSolver::AStarSolver ( Maze* _maze )
@@ -11,23 +12,79 @@ AStarSolver::AStarSolver ( Maze* _maze )
 void AStarSolver::solve ()
 {
     generate_nodes();
+    //delete_endpoints();
 
-    // delete endpoints
-    for ( auto it = _mNodes.begin(); it != _mNodes.end(); ++it )
+    // find start node
+    auto it = std::find_if( _mNodes.begin(), _mNodes.end(), [this]( MNode m ) {
+        return m.get_pos() == this->_maze->get_start();
+    } );
+    assert( it != _mNodes.end() );
+
+    AStarNode current_node ( &(*it), 0 );
+
+    std::vector<AStarNode> paths;
+    paths.push_back( current_node );
+
+    std::unordered_map<MNode*,MNode*> visitedANodes;
+
+    while ( current_node.node->get_pos() != _maze->get_end() )
     {
-        if ( it->num_conn() == 1 && it->get_pos() != _maze->get_start() && it->get_pos() != _maze->get_end() )
+        for ( int i = 0; i < current_node.node->num_conn(); ++i )
         {
-            MNode* n = it->get_conn( 0 );
-            n->delete_node( &(*it) );
-            _mNodes.erase( it );
+            MNode* new_node = current_node.node->get_conn( i );
+            if ( visitedANodes.count( new_node ) == 0 )
+            {
+                AStarNode new_aNode ( new_node, 0 );
+                new_aNode.cost = current_node.cost + calc_conn_cost( current_node, new_aNode );
+                paths.push_back( new_aNode );
+            }
         }
+
+        // sort, lowest cost last
+        std::sort( paths.begin(), paths.end(), [this]( AStarNode t1, AStarNode t2 ) {
+            return calc_cost( t1 ) > calc_cost( t2 );
+        } );
+        visitedANodes.insert( std::make_pair( paths.back().node, current_node.node ) );
+        current_node = paths.back();
+        std::cout << current_node.cost << std::endl;
+        paths.pop_back();
     }
-    std::cout << _mNodes.size() << std::endl;
+    std::cout << "Solved maze!" << std::endl;
+
+    // find end node
+    auto it_end = std::find_if( _mNodes.begin(), _mNodes.end(), [this]( MNode m ) {
+        return m.get_pos() == this->_maze->get_end();
+    } );
+    assert( it_end != _mNodes.end() );
+
+    MNode* c_node = &(*it_end);
+
+    while ( c_node->get_pos() != _maze->get_start() )
+    {
+        MNode* target_node = visitedANodes[c_node];
+        assert( target_node->get_pos() != c_node->get_pos() );
+        int x_steps = std::abs( target_node->x - c_node->x );
+        int y_steps = std::abs( target_node->y - c_node->y );
+        int steps = x_steps + y_steps;
+        int x_sign = x_steps > 0 ? (target_node->x - c_node->x) / x_steps : 0;
+        int y_sign = y_steps > 0 ? (target_node->y - c_node->y) / y_steps : 0;
+
+        Pos pos = c_node->get_pos();
+        for ( int i = 0; std::abs( i ) < steps; i += x_sign + y_sign )
+        {
+            pos.first += x_sign;
+            pos.second += y_sign;
+            _maze->set_tile( pos, Tiles::Solution );
+            std::cout << *_maze << std::endl;
+        }
+        assert( pos == target_node->get_pos() );
+        c_node = target_node;
+    }
 }
 
 void AStarSolver::generate_nodes ()
 {
-    std::vector<std::set<Dir>> dirSets;
+    std::vector<std::unordered_set<Dir>> dirSets;
 
     std::cout << "Setting up nodes..." << std::endl;
 
@@ -43,7 +100,7 @@ void AStarSolver::generate_nodes ()
                 continue;
             }
 
-            std::set<Dir> dirs;
+            std::unordered_set<Dir> dirs;
 
             for ( auto d : dirVector )
             {
@@ -67,10 +124,10 @@ void AStarSolver::generate_nodes ()
         }
     }
 
-    for ( auto&& node : _mNodes )
+    /*for ( auto&& node : _mNodes )
     {
         _maze->set_tile( make_pos( node.x, node.y ), Tiles::Solution );
-    }
+    }*/
 
     std::cout << *_maze;
 
@@ -114,4 +171,32 @@ void AStarSolver::generate_nodes ()
     }
 
     std::cout << "Done connecting " << _mNodes.size() << " nodes." << std::endl;
+}
+
+void AStarSolver::delete_endpoints ()
+{
+    for ( auto it = _mNodes.begin(); it != _mNodes.end(); ++it )
+    {
+        if ( it->num_conn() == 1 && it->get_pos() != _maze->get_start() && it->get_pos() != _maze->get_end() )
+        {
+            MNode* n = it->get_conn( 0 );
+            n->delete_node( &(*it) );
+            _mNodes.erase( it );
+        }
+    }
+    std::cout << _mNodes.size() << std::endl;
+}
+
+float AStarSolver::calc_cost ( AStarNode n ) const
+{
+    Pos a = n.node->get_pos();
+    Pos b = _maze->get_end();
+    return std::sqrt( std::pow( a.first - b.first, 2 ) + std::pow( a.second - b.second, 2 ) ) + n.cost;
+}
+
+float AStarSolver::calc_conn_cost ( AStarNode a, AStarNode b ) const
+{
+    Pos e = a.node->get_pos();
+    Pos f = b.node->get_pos();
+    return std::abs( e.first - f.first ) + std::abs( e.second - f.second );
 }

@@ -2,15 +2,22 @@
 #define MAZESOLVER_NODE_H
 
 #include <utility>
+#include <algorithm>
 #include <vector>
 
 struct MNode
 {
+    MNode () : x ( 0 ), y ( 0 )
+    {}
+
     MNode ( int x, int y ) : x ( x ), y ( y )
     {}
 
-    const int x;
-    const int y;
+    MNode ( Pos p ) : x ( p.first ), y ( p.second )
+    {}
+
+    int x;
+    int y;
 
     unsigned long num_conn ()
     {
@@ -34,11 +41,23 @@ struct MNode
 
     void delete_node( MNode* m )
     {
-        auto it = std::find( connections.begin(), connections.end(), m );
+        auto it = std::find_if( connections.begin(), connections.end(), [m]( MNode* M ) {
+            return m == M;
+        } );
         if ( it != connections.end() )
         {
             connections.erase( it );
         }
+    }
+
+    bool operator== ( MNode m )
+    {
+        return this->x == m.x && this->y == m.y;
+    }
+
+    bool operator== ( MNode* m )
+    {
+        return this->x == m->x && this->y == m->y;
     }
 
 private:

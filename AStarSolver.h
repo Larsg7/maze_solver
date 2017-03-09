@@ -5,6 +5,15 @@
 #include "Solver.h"
 #include "Node.h"
 
+struct AStarNode
+{
+    AStarNode ( MNode* nodePtr, float cost ) : node( nodePtr ), cost( cost )
+    {}
+
+    MNode* node;
+    float cost;
+};
+
 class AStarSolver : public Solver
 {
 public:
@@ -14,6 +23,12 @@ public:
 
 private:
     void generate_nodes ();
+
+    void delete_endpoints ();
+
+    float calc_cost ( AStarNode a ) const;
+
+    float calc_conn_cost ( AStarNode a, AStarNode b ) const;
 
     std::vector<MNode> _mNodes;
 

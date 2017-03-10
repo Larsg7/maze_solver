@@ -20,46 +20,50 @@ void AStarSolver::solve ()
     } );
     assert( it != _mNodes.end() );
 
-    // current_node = start
-    AStarNode current_node ( &(*it), 0 );
-
-    std::vector<AStarNode> paths;
-
     std::unordered_map<MNode*,MNode*> parentNodes;
 
-    std::unordered_set<MNode*> visitedNodes;
-
-    while ( current_node.node->get_pos() != _maze->get_end() )
     {
-        visitedNodes.insert( current_node.node );
-        for ( int i = 0; i < current_node.node->num_conn(); ++i )
+        // current_node = start
+        AStarNode current_node( &( *it ), 0 );
+
+        std::vector<AStarNode> paths;
+
+        std::unordered_set<MNode*> visitedNodes;
+
+        while ( current_node.node->get_pos() != _maze->get_end() )
         {
-            MNode* new_node = current_node.node->get_conn( i );
-            if ( visitedNodes.count( new_node ) == 0 )
+            visitedNodes.insert( current_node.node );
+            for ( int i = 0; i < current_node.node->num_conn(); ++i )
             {
-                AStarNode new_aNode ( new_node, 0 );
-                new_aNode.cost = current_node.cost + calc_conn_cost( current_node, new_aNode );
-                paths.push_back( new_aNode );
-                parentNodes.insert( std::make_pair( new_node, current_node.node ) );
+                MNode* new_node = current_node.node->get_conn( i );
+                if ( visitedNodes.count( new_node ) == 0 )
+                {
+                    AStarNode new_aNode( new_node, 0 );
+                    new_aNode.cost = current_node.cost + calc_conn_cost( current_node, new_aNode );
+                    paths.push_back( new_aNode );
+                    parentNodes.insert( std::make_pair( new_node, current_node.node ) );
+                }
             }
+
+            // sort, lowest cost last
+            std::sort( paths.begin(), paths.end(), [this] ( AStarNode t1, AStarNode t2 ) {
+                return calc_cost( t1 ) > calc_cost( t2 );
+            } );
+
+            if ( paths.size() == 0 )
+            {
+                std::cout << "Cannot solve maze!" << std::endl;
+                return;
+            }
+
+            current_node = paths.back();
+            paths.pop_back();
+            _steps++;
         }
-
-        // sort, lowest cost last
-        std::sort( paths.begin(), paths.end(), [this]( AStarNode t1, AStarNode t2 ) {
-            return calc_cost( t1 ) > calc_cost( t2 );
-        } );
-
-        if ( paths.size() == 0 )
-        {
-            std::cout << "Cannot solve maze!" << std::endl;
-            return;
-        }
-
-        current_node = paths.back();
-        paths.pop_back();
-        _steps++;
+        std::cout << "Solved maze in " << _steps << " steps!" << std::endl;
     }
-    std::cout << "Solved maze in " << _steps << " steps!" << std::endl << std::endl;
+
+    std::cout << "Drawing solution..." << std::endl << std::endl;
 
     // find end node
     auto it_end = std::find_if( _mNodes.begin(), _mNodes.end(), [this]( MNode m ) {
